@@ -1,6 +1,13 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  effect,
+  inject,
+  signal,
+  untracked,
+} from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ReportCard } from '../report-card/report-card';
 import {
   ApiReport,
@@ -28,6 +35,7 @@ import { RecentActivity } from '../recent-activity/recent-activity';
 import {
   LucideCamera,
   LucideEye,
+  LucideHistory,
   LucideLink,
   LucidePencil,
   LucidePlus,
@@ -51,6 +59,7 @@ type CatalogDialogMode = 'create' | 'edit';
     RouterLink,
     LucideCamera,
     LucideEye,
+    LucideHistory,
     LucideLink,
     LucidePencil,
     LucidePlus,
@@ -65,6 +74,7 @@ type CatalogDialogMode = 'create' | 'edit';
 })
 export class Home {
   private readonly fb = inject(FormBuilder);
+  private readonly route = inject(ActivatedRoute);
   private readonly api = inject(ReportsApiService);
   private readonly catalogApi = inject(CatalogApiService);
   private readonly usersApi = inject(UsersApiService);
@@ -151,6 +161,22 @@ export class Home {
   });
 
   protected readonly roleSlug = this.session.currentSlug;
+  protected readonly spacesView = signal(
+    this.route.snapshot.data['adminContext'] === 'espacios',
+  );
+  protected readonly hasSpacesAccess = this.session.hasSpacesAccess;
+  protected readonly isAdmin = computed(
+    () => this.roleSlug() === 'administrador',
+  );
+  /**
+   * En `/inicio/espacios` se reutiliza la vista de catálogo del
+   * administrador, pero solo para cuentas con permiso de HU-26.
+   */
+  protected readonly dashboardView = computed<RoleSlug>(() =>
+    this.spacesView() && this.hasSpacesAccess()
+      ? 'administrador'
+      : this.roleSlug(),
+  );
 
   protected readonly ownReports = computed(() => {
     const userId = this.auth.currentUser()?.id;
@@ -236,6 +262,10 @@ export class Home {
   });
 
   constructor() {
+    if (this.route.snapshot.data['adminContext'] === 'espacios') {
+      this.adminContext.set('espacios');
+    }
+
     this.form.controls.facultyId.disable({ emitEvent: false });
     this.form.controls.locationId.disable({ emitEvent: false });
     this.catalogLocationForm.controls.facultyId.disable({ emitEvent: false });
@@ -253,6 +283,12 @@ export class Home {
       this.loadReports();
       if (slug === 'administrador') {
         this.loadUsers();
+      }
+      if (
+        untracked(this.spacesView) &&
+        untracked(this.hasSpacesAccess)
+      ) {
+        this.loadCatalogData();
       }
       if (slug === 'reportante' || slug === 'administrador') {
         this.loadCampuses();

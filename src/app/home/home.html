@@ -10,7 +10,7 @@
     <!-- HU-21 — Actividad reciente (awareness del equipo, acotada por rol) -->
     <app-recent-activity [folios]="activityFolios()" />
 
-    @switch (roleSlug()) {
+    @switch (dashboardView()) {
       @case ('reportante') {
         <div class="section-head">
           <h1>Tus reportes</h1>
@@ -96,7 +96,19 @@
                     <td>{{ statusLabel(report.status) }}</td>    
                     <td>{{ report.campusLabel }}</td>
                     <td>{{ report.facultyLabel || '—' }}</td>
-                    <td>{{ report.spaceLabel }}</td>
+                    <td>
+                      @if (report.locationId && hasSpacesAccess()) {
+                        <a
+                          class="table-link"
+                          [routerLink]="['/inicio/espacios', report.locationId, 'historial']"
+                          [attr.title]="'Ver historial de ' + report.spaceLabel"
+                        >
+                          {{ report.spaceLabel }}
+                        </a>
+                      } @else {
+                        {{ report.spaceLabel }}
+                      }
+                    </td>
                   </tr>
                 }
               </tbody>
@@ -170,33 +182,35 @@
         </div>
       }
       @case ('administrador') {
-        <h1>{{ session.currentRole().name }}</h1>
-        <div class="context-switch" role="tablist" aria-label="Contexto de administración">
-          <button
-            type="button"
-            role="tab"
-            [attr.aria-selected]="adminContext() === 'usuarios'"
-            (click)="setAdminContext('usuarios')"
-          >
-            Usuarios
-          </button>
-          <button
-            type="button"
-            role="tab"
-            [attr.aria-selected]="adminContext() === 'roles'"
-            (click)="setAdminContext('roles')"
-          >
-            Roles
-          </button>
-          <button
-            type="button"
-            role="tab"
-            [attr.aria-selected]="adminContext() === 'espacios'"
-            (click)="setAdminContext('espacios')"
-          >
-            Espacios
-          </button>
-        </div>
+        <h1>{{ spacesView() ? 'Espacios' : session.currentRole().name }}</h1>
+        @if (!spacesView()) {
+          <div class="context-switch" role="tablist" aria-label="Contexto de administración">
+            <button
+              type="button"
+              role="tab"
+              [attr.aria-selected]="adminContext() === 'usuarios'"
+              (click)="setAdminContext('usuarios')"
+            >
+              Usuarios
+            </button>
+            <button
+              type="button"
+              role="tab"
+              [attr.aria-selected]="adminContext() === 'roles'"
+              (click)="setAdminContext('roles')"
+            >
+              Roles
+            </button>
+            <button
+              type="button"
+              role="tab"
+              [attr.aria-selected]="adminContext() === 'espacios'"
+              (click)="setAdminContext('espacios')"
+            >
+              Espacios
+            </button>
+          </div>
+        }
 
         @switch (adminContext()) {
           @case ('usuarios') {
@@ -305,14 +319,16 @@
                   Ubicación
                 </button>
               </div>
-              <button
-                type="button"
-                class="icon-action catalog-add"
-                aria-label="Crear registro"
-                (click)="openCatalogDialog(catalogContext(), 'create')"
-              >
-                <svg lucidePlus aria-hidden="true"></svg>
-              </button>
+              @if (isAdmin()) {
+                <button
+                  type="button"
+                  class="icon-action catalog-add"
+                  aria-label="Crear registro"
+                  (click)="openCatalogDialog(catalogContext(), 'create')"
+                >
+                  <svg lucidePlus aria-hidden="true"></svg>
+                </button>
+              }
             </div>
 
             @if (catalogLoading()) {
@@ -329,7 +345,9 @@
                     <table class="data-table">
                       <thead>
                         <tr>
-                          <th>Acción</th>
+                          @if (isAdmin()) {
+                            <th>Acción</th>
+                          }
                           <th>Código</th>
                           <th>Nombre</th>
                         </tr>
@@ -337,26 +355,28 @@
                       <tbody>
                         @for (campus of campuses(); track campus.id) {
                           <tr>
-                            <td>
-                              <div class="table-actions">
-                                <button
-                                  type="button"
-                                  class="icon-action"
-                                  aria-label="Editar campus"
-                                  (click)="openCatalogDialog('campus', 'edit', campus)"
-                                >
-                                  <svg lucidePencil aria-hidden="true"></svg>
-                                </button>
-                                <button
-                                  type="button"
-                                  class="icon-action icon-action-danger"
-                                  aria-label="Eliminar campus"
-                                  (click)="requestCatalogDelete('campus', campus.id, campus.name)"
-                                >
-                                  <svg lucideTrash2 aria-hidden="true"></svg>
-                                </button>
-                              </div>
-                            </td>
+                            @if (isAdmin()) {
+                              <td>
+                                <div class="table-actions">
+                                  <button
+                                    type="button"
+                                    class="icon-action"
+                                    aria-label="Editar campus"
+                                    (click)="openCatalogDialog('campus', 'edit', campus)"
+                                  >
+                                    <svg lucidePencil aria-hidden="true"></svg>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    class="icon-action icon-action-danger"
+                                    aria-label="Eliminar campus"
+                                    (click)="requestCatalogDelete('campus', campus.id, campus.name)"
+                                  >
+                                    <svg lucideTrash2 aria-hidden="true"></svg>
+                                  </button>
+                                </div>
+                              </td>
+                            }
                             <td><code>{{ campus.code }}</code></td>
                             <td>{{ campus.name }}</td>
                           </tr>
@@ -370,7 +390,9 @@
                     <table class="data-table">
                       <thead>
                         <tr>
-                          <th>Acción</th>
+                          @if (isAdmin()) {
+                            <th>Acción</th>
+                          }
                           <th>Campus</th>
                           <th>Nombre</th>
                         </tr>
@@ -378,26 +400,28 @@
                       <tbody>
                         @for (faculty of faculties(); track faculty.id) {
                           <tr>
-                            <td>
-                              <div class="table-actions">
-                                <button
-                                  type="button"
-                                  class="icon-action"
-                                  aria-label="Editar facultad"
-                                  (click)="openCatalogDialog('faculty', 'edit', faculty)"
-                                >
-                                  <svg lucidePencil aria-hidden="true"></svg>
-                                </button>
-                                <button
-                                  type="button"
-                                  class="icon-action icon-action-danger"
-                                  aria-label="Eliminar facultad"
-                                  (click)="requestCatalogDelete('faculty', faculty.id, faculty.name)"
-                                >
-                                  <svg lucideTrash2 aria-hidden="true"></svg>
-                                </button>
-                              </div>
-                            </td>
+                            @if (isAdmin()) {
+                              <td>
+                                <div class="table-actions">
+                                  <button
+                                    type="button"
+                                    class="icon-action"
+                                    aria-label="Editar facultad"
+                                    (click)="openCatalogDialog('faculty', 'edit', faculty)"
+                                  >
+                                    <svg lucidePencil aria-hidden="true"></svg>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    class="icon-action icon-action-danger"
+                                    aria-label="Eliminar facultad"
+                                    (click)="requestCatalogDelete('faculty', faculty.id, faculty.name)"
+                                  >
+                                    <svg lucideTrash2 aria-hidden="true"></svg>
+                                  </button>
+                                </div>
+                              </td>
+                            }
                             <td>{{ campusName(faculty.campusId) }}</td>
                             <td>{{ faculty.name }}</td>
                           </tr>
@@ -422,22 +446,34 @@
                           <tr>
                             <td>
                               <div class="table-actions">
-                                <button
-                                  type="button"
-                                  class="icon-action"
-                                  aria-label="Editar ubicación"
-                                  (click)="openCatalogDialog('location', 'edit', location)"
-                                >
-                                  <svg lucidePencil aria-hidden="true"></svg>
-                                </button>
-                                <button
-                                  type="button"
-                                  class="icon-action icon-action-danger"
-                                  aria-label="Eliminar ubicación"
-                                  (click)="requestCatalogDelete('location', location.id, location.name)"
-                                >
-                                  <svg lucideTrash2 aria-hidden="true"></svg>
-                                </button>
+                                @if (hasSpacesAccess()) {
+                                  <a
+                                    class="icon-action"
+                                    [routerLink]="['/inicio/espacios', location.id, 'historial']"
+                                    aria-label="Ver historial del espacio"
+                                    title="Ver historial del espacio"
+                                  >
+                                    <svg lucideHistory aria-hidden="true"></svg>
+                                  </a>
+                                }
+                                @if (isAdmin()) {
+                                  <button
+                                    type="button"
+                                    class="icon-action"
+                                    aria-label="Editar ubicación"
+                                    (click)="openCatalogDialog('location', 'edit', location)"
+                                  >
+                                    <svg lucidePencil aria-hidden="true"></svg>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    class="icon-action icon-action-danger"
+                                    aria-label="Eliminar ubicación"
+                                    (click)="requestCatalogDelete('location', location.id, location.name)"
+                                  >
+                                    <svg lucideTrash2 aria-hidden="true"></svg>
+                                  </button>
+                                }
                               </div>
                             </td>
                             <td>{{ locationCampusName(location) }}</td>

@@ -24,6 +24,7 @@ import {
   LucideFileText,
   LucideHouse,
   LucideLogOut,
+  LucideMapPin,
   LucideNetwork,
   LucidePanelLeft,
   LucideSettings,
@@ -56,6 +57,7 @@ const ROLE_COLORS: Record<RoleSlug, string> = {
     LucideHouse,
     LucideUsers,
     LucideLogOut,
+    LucideMapPin,
     LucidePanelLeft,
     LucideClipboardList,
     LucideChevronDown,
@@ -87,6 +89,7 @@ export class Shell {
   protected readonly roleMenuOpen = signal(false);
   protected readonly currentRole = this.roles.currentRole;
   protected readonly availableRoles = this.roles.availableRoles;
+  protected readonly hasSpacesAccess = this.roles.hasSpacesAccess;
   protected readonly canViewWorkload = computed(() =>
     ['coordinador', 'responsable'].includes(this.currentRole().slug),
   );

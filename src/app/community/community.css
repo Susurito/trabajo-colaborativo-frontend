@@ -123,3 +123,62 @@
     text-align: center;
   }
 }
+
+/* ==========================================================================
+   Estilos para el Embudo de Filtros (Filters Funnel)
+   ========================================================================== */
+
+.filters-funnel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0 2rem 0;
+  padding: 1.25rem;
+  background-color: var(--card-bg, #ffffff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5srem;
+  gap: 6px;
+}
+
+.filter-group label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary, #475569);
+}
+
+.filter-group select {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.95rem;
+  color: var(--text-primary, #1e293b);
+  background-color: var(--input-bg, #f8fafc);
+  border: 1px solid var(--border-color, #cbd5e1);
+  border-radius: 8px;
+  outline: none;
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+}
+
+.filter-group select:hover:not(:disabled) {
+  border-color: var(--primary-color, #3b82f6);
+}
+
+.filter-group select:focus {
+  border-color: var(--primary-color, #3b82f6);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  background-color: #ffffff;
+}
+
+.filter-group select:disabled {
+  color: var(--text-secondary, #64748b);
+  background-color: #f8fafc;
+  border-color: #e2e8f0;
+  cursor: not-allowed;
+}

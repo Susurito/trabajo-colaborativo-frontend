@@ -739,43 +739,58 @@
                   <span>{{ formatDate(item.createdAt) | date: 'short' }}</span>
                 </div>
 
-                @if (canManageCollaborations()) {
+                @if (hasCollabActions(item)) {
                   <div class="collab-actions">
                     @if (item.status === 'solicitada') {
-                      <button
-                        type="button"
-                        class="primary"
-                        (click)="setCollaborationStatus(item, 'aceptada')"
-                        [disabled]="collabSaving()"
-                      >
-                        Aceptar
-                      </button>
-                      <button
-                        type="button"
-                        class="ghost"
-                        (click)="setCollaborationStatus(item, 'rechazada')"
-                        [disabled]="collabSaving()"
-                      >
-                        Rechazar
-                      </button>
+                      @if (canRespondCollaborations()) {
+                        <button
+                          type="button"
+                          class="primary"
+                          (click)="setCollaborationStatus(item, 'aceptada')"
+                          [disabled]="collabSaving()"
+                        >
+                          Aceptar
+                        </button>
+                        <button
+                          type="button"
+                          class="ghost"
+                          (click)="setCollaborationStatus(item, 'rechazada')"
+                          [disabled]="collabSaving()"
+                        >
+                          Rechazar
+                        </button>
+                      } @else if (isCollabRequester(item)) {
+                        <button
+                          type="button"
+                          class="ghost"
+                          (click)="setCollaborationStatus(item, 'rechazada')"
+                          [disabled]="collabSaving()"
+                        >
+                          Retirar solicitud
+                        </button>
+                      }
                     }
                     @if (item.status === 'aceptada') {
-                      <button
-                        type="button"
-                        class="primary"
-                        (click)="setCollaborationStatus(item, 'completada')"
-                        [disabled]="collabSaving()"
-                      >
-                        Marcar completada
-                      </button>
-                      <button
-                        type="button"
-                        class="ghost"
-                        (click)="setCollaborationStatus(item, 'rechazada')"
-                        [disabled]="collabSaving()"
-                      >
-                        Rechazar
-                      </button>
+                      @if (canCompleteCollaborations()) {
+                        <button
+                          type="button"
+                          class="primary"
+                          (click)="setCollaborationStatus(item, 'completada')"
+                          [disabled]="collabSaving()"
+                        >
+                          Marcar completada
+                        </button>
+                      }
+                      @if (canRespondCollaborations()) {
+                        <button
+                          type="button"
+                          class="ghost"
+                          (click)="setCollaborationStatus(item, 'rechazada')"
+                          [disabled]="collabSaving()"
+                        >
+                          Rechazar
+                        </button>
+                      }
                     }
                   </div>
                 }

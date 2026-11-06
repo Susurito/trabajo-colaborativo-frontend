@@ -13,8 +13,20 @@
       <div>
         <span>Ubicación</span>
         <strong>
-          @for (line of locationLines(item.spaceLabel); track line) {
-            <span class="loc-line">{{ line }}</span>
+          @if (item.locationId && hasSpacesAccess()) {
+            <a
+              class="location-link"
+              [routerLink]="['/inicio/espacios', item.locationId, 'historial']"
+              [attr.title]="'Ver historial de ' + item.spaceLabel"
+            >
+              @for (line of locationLines(item.spaceLabel); track line) {
+                <span class="loc-line">{{ line }}</span>
+              }
+            </a>
+          } @else {
+            @for (line of locationLines(item.spaceLabel); track line) {
+              <span class="loc-line">{{ line }}</span>
+            }
           }
         </strong>
       </div>

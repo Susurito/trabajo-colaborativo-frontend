@@ -1,0 +1,178 @@
+<section class="location-history">
+  @if (loading()) {
+    <app-spinner label="Cargando historial del espacio físico…" />
+  } @else if (error(); as message) {
+    <div class="empty-panel">
+      <h2>No se pudo mostrar el historial</h2>
+      <p>{{ message }}</p>
+      @if (locationId() !== null) {
+        <button class="primary" type="button" (click)="load()">Reintentar</button>
+      }
+    </div>
+  } @else if (history(); as data) {
+    <header class="page-head">
+      <div class="page-head-copy">
+        <span class="eyebrow">HU-26 · Historial de espacio físico</span>
+        <h1>{{ data.locationName }}</h1>
+        <p>
+          Resumen acumulado de fallas, distribución por categorías y línea de
+          tiempo de las incidencias registradas en este espacio.
+        </p>
+      </div>
+
+      <button
+        class="ghost"
+        type="button"
+        (click)="load()"
+        [disabled]="loading()"
+      >
+        Actualizar
+      </button>
+    </header>
+
+    <div class="summary-grid">
+      <article class="summary-card summary-total">
+        <span class="summary-label">Incidencias registradas</span>
+        <strong class="summary-value">{{ data.totalIncidents }}</strong>
+        <span class="summary-hint">Total acumulado en este espacio</span>
+      </article>
+
+      <article class="summary-card">
+        <span class="summary-label">Categorías con fallas</span>
+        <strong class="summary-value">
+          {{ data.categoriesSummary.length }}
+        </strong>
+        <span class="summary-hint">
+          @if (data.categoriesSummary.length > 0) {
+            Categoría más frecuente:
+            {{ categoryLabel(data.categoriesSummary[0].category) }}
+          } @else {
+            Sin categorías registradas
+          }
+        </span>
+      </article>
+    </div>
+
+    <section class="panel" aria-labelledby="categories-title">
+      <div class="panel-head">
+        <h2 id="categories-title">Distribución por categoría</h2>
+        <span class="panel-sub">
+          {{ data.categoriesSummary.length }}
+          {{ data.categoriesSummary.length === 1 ? 'categoría' : 'categorías' }}
+        </span>
+      </div>
+
+      @if (data.categoriesSummary.length === 0) {
+        <div class="empty-inline">
+          <p>Aún no hay incidencias categorizadas en este espacio.</p>
+        </div>
+      } @else {
+        <ul class="category-list">
+          @for (item of data.categoriesSummary; track item.category) {
+            <li class="category-row" [attr.data-category]="item.category">
+              <div class="category-info">
+                <span class="category-name">
+                  {{ categoryLabel(item.category) }}
+                </span>
+                <span class="category-count">
+                  {{ item.count }}
+                  {{ item.count === 1 ? 'incidencia' : 'incidencias' }}
+                  · {{ share(item.count) }}%
+                </span>
+              </div>
+
+              <div
+                class="category-bar"
+                role="img"
+                [attr.aria-label]="
+                  categoryLabel(item.category) +
+                  ': ' +
+                  item.count +
+                  ' incidencias, ' +
+                  share(item.count) +
+                  ' por ciento'
+                "
+              >
+                <span [style.width.%]="share(item.count)"></span>
+              </div>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <section class="panel" aria-labelledby="timeline-title">
+      <div class="panel-head">
+        <h2 id="timeline-title">Línea de tiempo de incidencias</h2>
+        <span class="panel-sub">
+          {{ data.timeline.length }}
+          {{ data.timeline.length === 1 ? 'incidencia' : 'incidencias' }}
+        </span>
+      </div>
+
+      @if (data.timeline.length === 0) {
+        <div class="empty-inline">
+          <p>Este espacio todavía no tiene incidencias registradas.</p>
+        </div>
+      } @else {
+        <ol class="timeline">
+          @for (incident of data.timeline; track incident.id) {
+            <li class="timeline-item">
+              <span
+                class="timeline-dot"
+                [attr.data-status]="incident.status"
+                aria-hidden="true"
+              ></span>
+
+              <article class="timeline-card">
+                <div class="timeline-head">
+                  <a
+                    class="timeline-title"
+                    [routerLink]="['/inicio/reportes', incident.folio]"
+                  >
+                    {{ incident.title }}
+                  </a>
+
+                  <span
+                    class="status-badge"
+                    [attr.data-status]="incident.status"
+                  >
+                    {{ statusLabel(incident.status) }}
+                  </span>
+                </div>
+
+                <p class="timeline-meta">
+                  <code>{{ incident.folio }}</code>
+                  <span aria-hidden="true">·</span>
+                  <span>{{ incident.createdAt | date: 'medium' }}</span>
+                  <span aria-hidden="true">·</span>
+                  <span class="category-tag">
+                    {{ categoryLabel(incident.category) }}
+                  </span>
+                </p>
+
+                <div class="timeline-details">
+                  @if (incident.assignedTechName) {
+                    <span>
+                      <strong>Técnico asignado:</strong>
+                      {{ incident.assignedTechName }}
+                    </span>
+                  } @else {
+                    <span class="muted">Sin técnico asignado</span>
+                  }
+
+                  @if (incident.diagnosisSummary) {
+                    <span class="diagnosis">
+                      <strong>Diagnóstico:</strong>
+                      {{ incident.diagnosisSummary }}
+                    </span>
+                  }
+                </div>
+              </article>
+            </li>
+          }
+        </ol>
+      }
+    </section>
+  }
+</section>

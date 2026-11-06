@@ -2,7 +2,12 @@ import { computed, effect, inject, Injectable, signal } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { PLATFORM_ID } from '@angular/core';
 import { AuthService } from '../auth/auth.service';
-import { roleBySlug, roleSlugFromBackend, rolesFromBackend } from '../data/roles';
+import {
+  hasSpacesAccess as checkSpacesAccess,
+  roleBySlug,
+  roleSlugFromBackend,
+  rolesFromBackend,
+} from '../data/roles';
 import { Role, RoleSlug } from '../data/models';
 
 const ACTIVE_ROLE_KEY = 'active_role_slug';
@@ -17,6 +22,12 @@ export class RoleSessionService {
 
   readonly currentRole = computed<Role>(() => roleBySlug(this.roleSlug()));
 
+  /**
+   * HU-26 — Se recalcula automáticamente cuando `setRole()` cambia el rol
+   * activo, por lo que la UI reacciona sin recargar la página.
+   */
+  readonly hasSpacesAccess = computed(() => checkSpacesAccess(this.roleSlug()));
+
   readonly availableRoles = computed<Role[]>(() => {
     const profile = this.auth.currentUser();
     if (!profile?.roles?.length) {
@@ -26,20 +37,33 @@ export class RoleSessionService {
   });
 
   constructor() {
+    // Inicialización síncrona: los guards pueden leer el rol activo en cuanto
+    // la sesión está lista, sin esperar al primer ciclo de efectos.
+    this.syncFromProfile();
+
     effect(() => {
-      const profile = this.auth.currentUser();
-      if (!profile?.roles?.length) {
-        return;
-      }
-
-      const allowed = profile.roles.map((role) => roleSlugFromBackend(role));
-      const stored = this.readStoredSlug();
-      const nextSlug =
-        stored && allowed.includes(stored) ? stored : allowed[0] ?? 'reportante';
-
-      this.roleSlug.set(nextSlug);
-      this.persistSlug(nextSlug);
+      this.auth.currentUser();
+      this.syncFromProfile();
     });
+  }
+
+  private syncFromProfile(): void {
+    const profile = this.auth.currentUser();
+    if (!profile?.roles?.length) {
+      this.roleSlug.set('reportante');
+      return;
+    }
+
+    const allowed = profile.roles.map((role) => roleSlugFromBackend(role));
+    const stored = this.readStoredSlug();
+    const normalizedStored = stored ? roleSlugFromBackend(stored) : null;
+    const nextSlug =
+      normalizedStored && allowed.includes(normalizedStored)
+        ? normalizedStored
+        : allowed[0] ?? 'reportante';
+
+    this.roleSlug.set(nextSlug);
+    this.persistSlug(nextSlug);
   }
 
   setRole(slug: RoleSlug): void {

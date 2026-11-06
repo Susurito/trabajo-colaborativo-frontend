@@ -20,6 +20,66 @@
       </div>
     </div>
 
+    <!--========================================================================-->
+<!-- Embudo de Filtros en Cascada y Estado -->
+    <div class="filters-funnel">
+      <!-- Filtro de Campus -->
+      <div class="filter-group">
+        <label for="campus-select">Campus</label>
+        <select 
+          id="campus-select" 
+          (change)="onCampusChange($any($event.target).value ? +$any($event.target).value : null)">
+          <option value="" [selected]="!selectedCampusId()">Todos los campus</option>
+          @for (campus of campuses(); track campus.id) {
+            <option [value]="campus.id" [selected]="selectedCampusId() === campus.id">{{ campus.name }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- Filtro de Facultad -->
+      <div class="filter-group">
+        <label for="faculty-select">Facultad</label>
+        <select 
+          id="faculty-select" 
+          [disabled]="!selectedCampusId()"
+          (change)="onFacultyChange($any($event.target).value ? +$any($event.target).value : null)">
+          <option value="" [selected]="!selectedFacultyId()">Todas las facultades</option>
+          @for (faculty of faculties(); track faculty.id) {
+            <option [value]="faculty.id" [selected]="selectedFacultyId() === faculty.id">{{ faculty.name }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- Filtro de Ubicación -->
+      <div class="filter-group">
+        <label for="location-select">Ubicación</label>
+        <select 
+          id="location-select" 
+          [disabled]="!selectedFacultyId()"
+          (change)="onLocationChange($any($event.target).value ? +$any($event.target).value : null)">
+          <option value="" [selected]="!selectedLocationId()">Todas las ubicaciones</option>
+          @for (location of locations(); track location.id) {
+            <option [value]="location.id" [selected]="selectedLocationId() === location.id">{{ location.name }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- Filtro de Estado -->
+      <div class="filter-group">
+        <label for="status-select">Estado</label>
+        <select 
+          id="status-select" 
+          (change)="onStatusChange($any($event.target).value)">
+          <option value="" [selected]="!selectedStatus()">Todos los estados</option>
+          <option value="PENDING" [selected]="selectedStatus() === 'PENDING'">Pendiente</option>
+          <option value="IN_PROGRESS" [selected]="selectedStatus() === 'IN_PROGRESS'">En Proceso</option>
+          <option value="RESOLVED" [selected]="selectedStatus() === 'RESOLVED'">Resuelto</option>
+          <option value="REJECTED" [selected]="selectedStatus() === 'REJECTED'">Rechazado</option>
+        </select>
+      </div>
+    </div>
+    <!--========================================================================-->
+
     @if (communityReports().length === 0) {
       <div class="empty-state">
         <p>Aún no hay reportes en la comunidad.</p>

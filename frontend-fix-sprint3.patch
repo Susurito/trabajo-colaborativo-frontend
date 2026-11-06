@@ -1,0 +1,186 @@
+From 2411f7909ee3b386dd40b9a90a689c0d3fa24962 Mon Sep 17 00:00:00 2001
+From: "Claude (asistente)" <noreply@anthropic.com>
+Date: Mon, 19 Oct 2026 01:12:01 +0000
+Subject: [PATCH] fix: permisos de colaboracion entre areas (HU-16)
+
+- Quien solicita una colaboracion ya no puede aceptarla ni rechazarla: Aceptar
+  y Rechazar se muestran solo a responsable de area, coordinador y
+  administrador (coincide con la validacion del backend).
+- El solicitante ve "Retirar solicitud" mientras la solicitud sigue pendiente.
+- "Marcar completada" queda para el tecnico asignado y los roles de gestion.
+- ApiCollaboration incluye respondedById.
+---
+ src/app/data/reports-api.service.ts      |  1 +
+ src/app/report-detail/report-detail.html | 81 ++++++++++++++----------
+ src/app/report-detail/report-detail.ts   | 39 +++++++++++-
+ 3 files changed, 86 insertions(+), 35 deletions(-)
+
+diff --git a/src/app/data/reports-api.service.ts b/src/app/data/reports-api.service.ts
+index 0f452ca..4b40693 100644
+--- a/src/app/data/reports-api.service.ts
++++ b/src/app/data/reports-api.service.ts
+@@ -120,6 +120,7 @@ export interface ApiCollaboration {
+   toSpecialty: CollaborationSpecialty;
+   reason: string;
+   status: CollaborationStatus;
++  respondedById: number | null;
+   createdAt: string;
+   updatedAt: string;
+ }
+diff --git a/src/app/report-detail/report-detail.html b/src/app/report-detail/report-detail.html
+index 2d774b9..de4ef5d 100644
+--- a/src/app/report-detail/report-detail.html
++++ b/src/app/report-detail/report-detail.html
+@@ -739,43 +739,58 @@
+                   <span>{{ formatDate(item.createdAt) | date: 'short' }}</span>
+                 </div>
+ 
+-                @if (canManageCollaborations()) {
++                @if (hasCollabActions(item)) {
+                   <div class="collab-actions">
+                     @if (item.status === 'solicitada') {
+-                      <button
+-                        type="button"
+-                        class="primary"
+-                        (click)="setCollaborationStatus(item, 'aceptada')"
+-                        [disabled]="collabSaving()"
+-                      >
+-                        Aceptar
+-                      </button>
+-                      <button
+-                        type="button"
+-                        class="ghost"
+-                        (click)="setCollaborationStatus(item, 'rechazada')"
+-                        [disabled]="collabSaving()"
+-                      >
+-                        Rechazar
+-                      </button>
++                      @if (canRespondCollaborations()) {
++                        <button
++                          type="button"
++                          class="primary"
++                          (click)="setCollaborationStatus(item, 'aceptada')"
++                          [disabled]="collabSaving()"
++                        >
++                          Aceptar
++                        </button>
++                        <button
++                          type="button"
++                          class="ghost"
++                          (click)="setCollaborationStatus(item, 'rechazada')"
++                          [disabled]="collabSaving()"
++                        >
++                          Rechazar
++                        </button>
++                      } @else if (isCollabRequester(item)) {
++                        <button
++                          type="button"
++                          class="ghost"
++                          (click)="setCollaborationStatus(item, 'rechazada')"
++                          [disabled]="collabSaving()"
++                        >
++                          Retirar solicitud
++                        </button>
++                      }
+                     }
+                     @if (item.status === 'aceptada') {
+-                      <button
+-                        type="button"
+-                        class="primary"
+-                        (click)="setCollaborationStatus(item, 'completada')"
+-                        [disabled]="collabSaving()"
+-                      >
+-                        Marcar completada
+-                      </button>
+-                      <button
+-                        type="button"
+-                        class="ghost"
+-                        (click)="setCollaborationStatus(item, 'rechazada')"
+-                        [disabled]="collabSaving()"
+-                      >
+-                        Rechazar
+-                      </button>
++                      @if (canCompleteCollaborations()) {
++                        <button
++                          type="button"
++                          class="primary"
++                          (click)="setCollaborationStatus(item, 'completada')"
++                          [disabled]="collabSaving()"
++                        >
++                          Marcar completada
++                        </button>
++                      }
++                      @if (canRespondCollaborations()) {
++                        <button
++                          type="button"
++                          class="ghost"
++                          (click)="setCollaborationStatus(item, 'rechazada')"
++                          [disabled]="collabSaving()"
++                        >
++                          Rechazar
++                        </button>
++                      }
+                     }
+                   </div>
+                 }
+diff --git a/src/app/report-detail/report-detail.ts b/src/app/report-detail/report-detail.ts
+index b446374..4c84774 100644
+--- a/src/app/report-detail/report-detail.ts
++++ b/src/app/report-detail/report-detail.ts
+@@ -527,9 +527,10 @@ export class ReportDetail implements OnInit, OnDestroy {
+   });
+ 
+ 
+-  protected readonly canManageCollaborations = computed(() =>
++  /* HU-16 — Aceptar o rechazar una colaboración solo corresponde a los roles
++     de gestión; quien la solicita no puede aceptar su propia solicitud. */
++  protected readonly canRespondCollaborations = computed(() =>
+ 
+-    this.isAssignee() ||
+     this.isRole(
+       'responsable',
+       'coordinador',
+@@ -538,6 +539,40 @@ export class ReportDetail implements OnInit, OnDestroy {
+ 
+   );
+ 
++  /* Completar: técnico asignado o roles de gestión. */
++  protected readonly canCompleteCollaborations = computed(() =>
++
++    this.isAssignee() ||
++    this.canRespondCollaborations()
++
++  );
++
++  /* El solicitante puede retirar su solicitud mientras siga pendiente. */
++  protected isCollabRequester(item: ApiCollaboration): boolean {
++    return (
++      Number(item.requestedById) ===
++      Number(this.auth.currentUser()?.id)
++    );
++  }
++
++  protected hasCollabActions(item: ApiCollaboration): boolean {
++    if (item.status === 'solicitada') {
++      return (
++        this.canRespondCollaborations() ||
++        this.isCollabRequester(item)
++      );
++    }
++
++    if (item.status === 'aceptada') {
++      return (
++        this.canCompleteCollaborations() ||
++        this.canRespondCollaborations()
++      );
++    }
++
++    return false;
++  }
++
+ 
+   protected readonly collabSpecialtyOptions = computed(() => {
+ 
+-- 
+2.43.0
+

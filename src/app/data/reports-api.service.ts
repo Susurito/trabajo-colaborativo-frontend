@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../environments/environment';
@@ -120,6 +120,7 @@ export interface ApiCollaboration {
   toSpecialty: CollaborationSpecialty;
   reason: string;
   status: CollaborationStatus;
+  respondedById: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -219,12 +220,27 @@ export class ReportsApiService {
      REPORTES
      ======================================================= */
 
-  list(): Observable<ApiReport[]> {
+/*================================================================================================ */
+  list(filters?: {
+    search?: string;
+    status?: string;
+    campusId?: number;
+    facultyId?: number;
+    locationId?: number;
+  }): Observable<ApiReport[]> {
+    let params = new HttpParams();
+    if (filters?.search) params = params.set('search', filters.search);
+    if (filters?.status) params = params.set('status', filters.status);
+    if (filters?.campusId) params = params.set('campusId', filters.campusId.toString());
+    if (filters?.facultyId) params = params.set('facultyId', filters.facultyId.toString());
+    if (filters?.locationId) params = params.set('locationId', filters.locationId.toString());
+
     return this.http.get<ApiReport[]>(
       `${this.apiUrl}/reports/`,
+      { params }
     );
   }
-
+/*================================================================================================*/
 
   getByFolio(
     folio: string,

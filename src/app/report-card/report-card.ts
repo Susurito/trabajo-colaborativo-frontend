@@ -1,7 +1,8 @@
-import { Component, input } from '@angular/core';
+import { Component, inject, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ApiReport } from '../data/reports-api.service';
 import { statusLabel } from '../data/report-status';
+import { RoleSessionService } from '../session/role-session.service';
 
 @Component({
   selector: 'app-report-card',
@@ -10,8 +11,11 @@ import { statusLabel } from '../data/report-status';
   styleUrl: './report-card.css',
 })
 export class ReportCard {
+  private readonly session = inject(RoleSessionService);
+
   readonly report = input.required<ApiReport>();
   protected readonly statusLabel = statusLabel;
+  protected readonly hasSpacesAccess = this.session.hasSpacesAccess;
 
   protected locationLines(label?: string): string[] {
     if (!label) {
@@ -30,5 +34,5 @@ export class ReportCard {
       .toUpperCase();
   }
 
-  
+
 }

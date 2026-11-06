@@ -134,6 +134,27 @@
   display: block;
 }
 
+.location-link {
+  display: block;
+  color: var(--text-link);
+  text-decoration: none;
+  border-radius: 0.25rem;
+}
+
+.stats .location-link .loc-line {
+  color: var(--text-link);
+}
+
+.location-link:hover .loc-line,
+.location-link:focus-visible .loc-line {
+  text-decoration: underline;
+}
+
+.location-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 .stats span {
   display: block;
   margin-top: 0.15rem;

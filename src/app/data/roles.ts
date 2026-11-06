@@ -61,3 +61,29 @@ export function rolesFromBackend(roles: string[]): Role[] {
 export function roleBySlug(slug: RoleSlug): Role {
   return ROLES.find((item) => item.slug === slug) ?? ROLES[0];
 }
+
+/**
+ * HU-26 — Lista blanca estricta de roles (slugs del backend) con acceso al
+ * catálogo de espacios y a su historial.
+ */
+export const ALLOWED_ROLES: readonly string[] = [
+  'coordinador',
+  'responsable_area',
+  'administrador',
+];
+
+/**
+ * Evalúa el rol activo contra la lista blanca de HU-26.
+ *
+ * El frontend normaliza `responsable_area` como `responsable`, por lo que se
+ * traduce al slug del backend antes de comparar. Cualquier otro rol
+ * (`reportante`, `tecnico`, `validador`) o la ausencia de rol devuelve `false`.
+ */
+export function hasSpacesAccess(
+  activeSlug: RoleSlug | null | undefined,
+): boolean {
+  if (!activeSlug) {
+    return false;
+  }
+  return ALLOWED_ROLES.includes(roleSlugToBackend(activeSlug));
+}
