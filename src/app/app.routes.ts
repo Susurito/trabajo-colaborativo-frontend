@@ -16,15 +16,20 @@ export const routes: Routes = [
   { path: '', component: Login },
   { path: 'login', component: Login },
   { path: 'registro', component: Signup },
-  // Ruta directa para pruebas inmediatas sin depender del login
-  { path: 'dashboard', component: DashboardComponent },
+  // Redirección conveniente a la ruta protegida dentro del Shell
+  { path: 'dashboard', redirectTo: 'inicio/dashboard', pathMatch: 'full' },
   {
     path: 'inicio',
     component: Shell,
     // canActivate: [authGuard],
     children: [
       { path: '', component: Home },
-      { path: 'dashboard', component: DashboardComponent },
+      {
+        path: 'dashboard',
+        component: DashboardComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['coordinador', 'responsable_area', 'administrador'] },
+      },
       { path: 'cargas', component: Workload, canActivate: [workloadGuard] },
       { path: 'comunidad', component: Community },
       { path: 'reportes/:id', component: ReportDetail },

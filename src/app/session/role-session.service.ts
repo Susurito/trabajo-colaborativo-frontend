@@ -3,6 +3,7 @@ import { isPlatformBrowser } from '@angular/common';
 import { PLATFORM_ID } from '@angular/core';
 import { AuthService } from '../auth/auth.service';
 import {
+  hasDashboardAccess as checkDashboardAccess,
   hasSpacesAccess as checkSpacesAccess,
   roleBySlug,
   roleSlugFromBackend,
@@ -27,6 +28,11 @@ export class RoleSessionService {
    * activo, por lo que la UI reacciona sin recargar la página.
    */
   readonly hasSpacesAccess = computed(() => checkSpacesAccess(this.roleSlug()));
+
+  /**
+   * HU-22/23 — Acceso al Dashboard Operativo reactivo al rol activo.
+   */
+  readonly hasDashboardAccess = computed(() => checkDashboardAccess(this.roleSlug()));
 
   readonly availableRoles = computed<Role[]>(() => {
     const profile = this.auth.currentUser();

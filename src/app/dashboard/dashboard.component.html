@@ -12,6 +12,15 @@
   @if (cargando) { <span>Actualizando métricas operativas…</span> }
 </div>
 
+@if (errorCarga) {
+  <div class="error-banner" role="alert" aria-live="assertive">
+    <span>⚠️ {{ errorCarga }}</span>
+    <button type="button" (click)="cargarDatos()" [disabled]="cargando">
+      Reintentar
+    </button>
+  </div>
+}
+
 <!-- Métricas (KPI Cards con el estilo oficial del proyecto) -->
 <section class="metrics" aria-label="Resumen operativo" [attr.aria-busy]="cargando">
   <article>

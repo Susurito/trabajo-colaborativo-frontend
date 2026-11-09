@@ -87,3 +87,25 @@ export function hasSpacesAccess(
   }
   return ALLOWED_ROLES.includes(roleSlugToBackend(activeSlug));
 }
+
+/**
+ * HU-22 / HU-23 — Lista blanca de roles con acceso al Dashboard Operativo global.
+ */
+export const DASHBOARD_ALLOWED_ROLES: readonly string[] = [
+  'coordinador',
+  'responsable_area',
+  'administrador',
+];
+
+/**
+ * Evalúa si el rol activo tiene acceso al Dashboard Operativo global.
+ */
+export function hasDashboardAccess(
+  activeSlug: RoleSlug | null | undefined,
+): boolean {
+  if (!activeSlug) {
+    return false;
+  }
+  return DASHBOARD_ALLOWED_ROLES.includes(roleSlugToBackend(activeSlug));
+}
+

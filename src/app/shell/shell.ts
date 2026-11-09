@@ -90,6 +90,7 @@ export class Shell {
   protected readonly currentRole = this.roles.currentRole;
   protected readonly availableRoles = this.roles.availableRoles;
   protected readonly hasSpacesAccess = this.roles.hasSpacesAccess;
+  protected readonly canViewDashboard = this.roles.hasDashboardAccess;
   protected readonly canViewWorkload = computed(() =>
     ['coordinador', 'responsable'].includes(this.currentRole().slug),
   );
