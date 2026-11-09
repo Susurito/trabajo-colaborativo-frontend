@@ -153,6 +153,8 @@ export class ReportDetail implements OnInit, OnDestroy {
   protected readonly assignments = signal<ApiAssignment[]>([]);
 
   protected readonly events = signal<ApiStatusEvent[]>([]);
+  protected readonly statusEventsLoading = signal(false);
+  protected readonly statusEventsError = signal('');
 
   protected readonly names = signal<Record<number, string>>({});
 
@@ -416,6 +418,8 @@ export class ReportDetail implements OnInit, OnDestroy {
     return (
       !!item &&
       item.status === 'bloqueada' &&
+      !this.statusEventsLoading() &&
+      !this.statusEventsError() &&
       !!this.resumeStatus() &&
       (
         this.isAssignee() ||
@@ -463,10 +467,8 @@ export class ReportDetail implements OnInit, OnDestroy {
     computed<ReportStatus | null>(() => {
 
       const blocked =
-        this.events().find(
-          (event) =>
-            event.toStatus === 'bloqueada',
-        );
+        this.events().reduce<ApiStatusEvent | null>((latest, event) =>
+          event.toStatus === 'bloqueada' && (!latest || event.id > latest.id) ? event : latest, null);
 
       return blocked?.fromStatus ?? null;
 
@@ -484,6 +486,7 @@ export class ReportDetail implements OnInit, OnDestroy {
       this.canResolve() ||
       this.canBlock() ||
       this.canUnblock() ||
+      (this.report()?.status === 'bloqueada' && (this.isAssignee() || this.role() === 'responsable')) ||
       this.canClose() ||
       this.canReopen()
 
@@ -1422,20 +1425,29 @@ export class ReportDetail implements OnInit, OnDestroy {
       });
 
 
-    this.api
-      .listStatusEvents(
-        this.folio,
-      )
-      .subscribe({
+    this.loadStatusEvents();
 
-        next: (rows) =>
-          this.events.set(rows),
+  }
 
-        error: () =>
-          this.events.set([]),
 
-      });
-
+  protected loadStatusEvents(): void {
+    if (this.statusEventsLoading()) return;
+    this.statusEventsLoading.set(true);
+    this.statusEventsError.set('');
+    this.api.listStatusEvents(this.folio).subscribe({
+      next: (rows) => {
+        this.events.set(rows);
+        this.statusEventsLoading.set(false);
+        if (this.report()?.status === 'bloqueada' && !this.resumeStatus()) {
+          this.statusEventsError.set('No se encontró el estado anterior al bloqueo.');
+        }
+      },
+      error: () => {
+        this.events.set([]);
+        this.statusEventsLoading.set(false);
+        this.statusEventsError.set('No se pudo cargar el historial necesario para desbloquear el reporte.');
+      },
+    });
   }
 
 

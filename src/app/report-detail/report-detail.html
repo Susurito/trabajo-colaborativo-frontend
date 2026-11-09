@@ -872,6 +872,14 @@
           Gestión
         </h2>
 
+        @if (view.status === 'bloqueada' && statusEventsError()) {
+          <p role="alert">{{ statusEventsError() }}</p>
+          <button type="button" (click)="loadStatusEvents()" [disabled]="statusEventsLoading()">
+            Reintentar cargar historial
+          </button>
+        }
+
+
 
         @if (canCategorize()) {
 
@@ -1092,7 +1100,7 @@
               (click)="move(resume)"
               [disabled]="busy()"
             >
-              Volver a {{ statusLabel(resume) }}
+              Desbloquear y volver a {{ statusLabel(resume) }}
             </button>
 
           }
