@@ -88,7 +88,7 @@ export class RecentActivity implements OnInit {
       case 'creacion':
         return 'Creado';
       case 'estado':
-        return 'Estado cambiado';
+        return 'Cambiado';
       case 'asignacion':
         return 'Asignado';
       case 'comentario':
