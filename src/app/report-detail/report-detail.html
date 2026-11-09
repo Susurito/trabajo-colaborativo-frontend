@@ -5,6 +5,23 @@
 } @else if (report(); as view) {
 
   <article class="detail">
+    @if (view.status === 'bloqueada') {
+      <aside class="impediment-banner" aria-label="Impedimento activo">
+        <span class="impediment-badge">Bloqueada</span>
+        <h2>Impedimento activo</h2>
+        @if (activeImpediment(); as impediment) {
+          <p class="impediment-body">{{ impediment.comment || 'Sin motivo registrado.' }}</p>
+          <p class="impediment-meta">Registrado por {{ personName(impediment.actorId) }} · {{ impediment.createdAt | date:'dd/MM/yyyy HH:mm' }}</p>
+          <p>Estado de retorno: <strong>{{ statusLabel(impediment.fromStatus) }}</strong></p>
+        } @else if (statusEventsLoading()) {
+          <p>Cargando motivo del impedimento…</p>
+        } @else {
+          <p>{{ statusEventsError() || 'No se encontró el registro del impedimento.' }}</p>
+          <button type="button" (click)="loadStatusEvents()">Reintentar cargar historial</button>
+        }
+      </aside>
+    }
+
 
     <!-- =====================================================
          INFORMACIÓN GENERAL DEL REPORTE
@@ -1108,54 +1125,20 @@
         </div>
 
 
-        @if (
-          canBlock() ||
-          canReopen()
-        ) {
+        @if (canBlock()) {
+          <button type="button" class="impediment-trigger" (click)="requestImpediment()" [disabled]="busy()">
+            Registrar impedimento
+          </button>
+        }
 
+        @if (canReopen()) {
           <label class="stack">
-
-            Comentario
-
-            <textarea
-              rows="3"
-              [value]="comment()"
-              (input)="onComment($event)"
-              [disabled]="busy()"
-            ></textarea>
-
+            Comentario para reabrir
+            <textarea rows="3" [value]="comment()" (input)="onComment($event)" [disabled]="busy()"></textarea>
           </label>
-
-
           <div class="actions">
-
-            @if (canBlock()) {
-
-              <button
-                type="button"
-                (click)="move('bloqueada', true)"
-                [disabled]="busy()"
-              >
-                Bloquear
-              </button>
-
-            }
-
-
-            @if (canReopen()) {
-
-              <button
-                type="button"
-                (click)="move('reabierta', true)"
-                [disabled]="busy()"
-              >
-                Reabrir
-              </button>
-
-            }
-
+            <button type="button" (click)="move('reabierta', true)" [disabled]="busy()">Reabrir</button>
           </div>
-
         }
 
       </section>
@@ -1356,4 +1339,45 @@
     <button type="button" (click)="cancelClose()" [disabled]="busy()">Cancelar</button>
     <button type="button" (click)="confirmClose()" [disabled]="busy()">{{ busy() ? 'Cerrando…' : 'Sí, cerrar reporte' }}</button>
   </div>
+</app-dialog>
+
+<app-dialog [open]="impedimentOpen()" title="Registrar impedimento" titleId="impediment-title"
+  variant="impediment" [showClose]="false" [manageFocus]="true" [closeDisabled]="busy()" (closed)="cancelImpediment()">
+  <form class="impediment-form" [formGroup]="impedimentForm" (ngSubmit)="confirmImpediment()" [attr.aria-busy]="busy()">
+    <p class="impediment-subtitle">{{ report()?.folio }} · {{ report()?.title }}</p>
+    <fieldset [disabled]="busy()">
+      <label for="impediment-reason">Motivo</label>
+      <select id="impediment-reason" formControlName="reason" data-initial-focus
+        [attr.aria-invalid]="impedimentForm.controls.reason.touched && impedimentForm.controls.reason.invalid"
+        aria-describedby="impediment-reason-error">
+        <option value="" disabled>Selecciona un motivo</option>
+        @for (reason of impedimentReasons; track reason) { <option [value]="reason">{{ reason }}</option> }
+      </select>
+      <span id="impediment-reason-error" class="impediment-field-error">
+        @if (impedimentForm.controls.reason.touched && impedimentForm.controls.reason.invalid) { Selecciona un motivo. }
+      </span>
+      <label for="impediment-description">Descripción</label>
+      <textarea id="impediment-description" formControlName="description" rows="3"
+        placeholder="Explica qué impide avanzar y qué se necesita para continuar."
+        [attr.aria-invalid]="impedimentForm.controls.description.touched && impedimentForm.controls.description.invalid"
+        aria-describedby="impediment-description-error impediment-counter"></textarea>
+      <span id="impediment-description-error" class="impediment-field-error">
+        @if (impedimentForm.controls.description.touched && impedimentForm.controls.description.invalid) { Escribe una descripción del impedimento. }
+      </span>
+      <p id="impediment-counter" class="impediment-counter" [class.impediment-field-error]="impedimentComment().length > 1000">
+        {{ impedimentComment().length }} / 1000 caracteres, incluido el motivo
+      </p>
+    </fieldset>
+    <p class="impediment-info">La incidencia pasará a estado <strong>Bloqueada</strong>.
+      Estado previo guardado: <strong>{{ statusLabel(report()?.status ?? 'asignada') }}</strong>.
+      El motivo quedará visible en el detalle y el historial.</p>
+    @if (impedimentComment().length > 1000) { <p class="impediment-field-error" role="alert">El motivo y la descripción no deben superar 1000 caracteres en total.</p> }
+    @if (impedimentError()) { <p class="impediment-field-error" role="alert">{{ impedimentError() }}</p> }
+    <div class="impediment-actions">
+      <button type="button" class="impediment-cancel" (click)="cancelImpediment()" [disabled]="busy()">Cancelar</button>
+      <button type="submit" class="impediment-submit" [disabled]="busy() || impedimentComment().length > 1000">
+        {{ busy() ? 'Registrando…' : 'Registrar impedimento' }}
+      </button>
+    </div>
+  </form>
 </app-dialog>

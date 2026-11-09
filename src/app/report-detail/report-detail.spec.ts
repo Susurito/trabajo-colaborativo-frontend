@@ -1,7 +1,7 @@
 import { signal, provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute } from '@angular/router';
-import { of, throwError } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 import { ReportDetail } from './report-detail';
 import { AuthService } from '../auth/auth.service';
 import { ReportsApiService, ApiReport, ApiStatusEvent } from '../data/reports-api.service';
@@ -74,4 +74,87 @@ describe('Report unblocking', () => {
     user.set({ id: 4 });
     expect(component['canUnblock']()).toBeTrue();
   });
+  it('validates required and whitespace-only descriptions and the full length', () => {
+    component['report'].set({ status: 'asignada', assigneeId: 2 } as ApiReport);
+    component['requestImpediment']();
+    component['confirmImpediment']();
+    expect(component['impedimentForm'].invalid).toBeTrue();
+    component['impedimentForm'].setValue({ reason: 'Otro', description: '   ' });
+    component['confirmImpediment']();
+    expect(component['impedimentForm'].invalid).toBeTrue();
+    component['impedimentForm'].setValue({ reason: 'Otro', description: 'a'.repeat(1000) });
+    component['confirmImpediment']();
+    expect(api.changeStatus).not.toHaveBeenCalled();
+  });
+
+  it('opens only for the assignee or responsible in the allowed states', () => {
+    component['requestImpediment']();
+    expect(component['impedimentOpen']()).toBeFalse();
+    component['report'].set({ status: 'en_progreso', assigneeId: 4 } as ApiReport);
+    component['requestImpediment']();
+    expect(component['impedimentOpen']()).toBeFalse();
+    role.set('responsable');
+    component['requestImpediment']();
+    expect(component['impedimentOpen']()).toBeTrue();
+  });
+
+  it('saves from both source states, prevents duplicate sends and closing while saving', () => {
+    spyOn<any>(component, 'loadHistory');
+    spyOn<any>(component, 'loadUnifiedHistory');
+    for (const status of ['asignada', 'en_progreso'] as const) {
+      const response = new Subject<ApiReport>();
+      api.changeStatus.and.returnValue(response);
+      component['report'].set({ status, assigneeId: 2 } as ApiReport);
+      component['requestImpediment']();
+      component['impedimentForm'].setValue({ reason: 'Falta de refacción', description: '  Se requiere lámpara.  ' });
+      const before = api.changeStatus.calls.count();
+      component['confirmImpediment']();
+      component['confirmImpediment']();
+      component['cancelImpediment']();
+      expect(component['impedimentOpen']()).toBeTrue();
+      expect(api.changeStatus.calls.count()).toBe(before + 1);
+      expect(api.changeStatus.calls.mostRecent().args[1]).toEqual({ status: 'bloqueada', comment: 'Motivo: Falta de refacción\nDescripción: Se requiere lámpara.' });
+      response.next({ status: 'bloqueada', assigneeId: 2 } as ApiReport);
+      response.complete();
+      expect(component['impedimentOpen']()).toBeFalse();
+      expect(component['report']()?.status).toBe('bloqueada');
+    }
+    expect(component['loadHistory']).toHaveBeenCalledTimes(2);
+  });
+
+  it('retains input on failure and clears it on a fresh opening after cancel', () => {
+    component['report'].set({ status: 'asignada', assigneeId: 2 } as ApiReport);
+    component['requestImpediment']();
+    component['impedimentForm'].setValue({ reason: 'Otro', description: 'Esperando autorización' });
+    api.changeStatus.and.returnValue(throwError(() => ({ error: { detail: 'Sin conexión' } })));
+    component['confirmImpediment']();
+    expect(component['impedimentError']()).toBe('Sin conexión');
+    expect(component['impedimentOpen']()).toBeTrue();
+    expect(component['impedimentForm'].controls.description.value).toBe('Esperando autorización');
+    component['cancelImpediment']();
+    component['requestImpediment']();
+    expect(component['impedimentForm'].controls.description.value).toBe('');
+    expect(component['impedimentError']()).toBe('');
+  });
+
+  it('displays legacy comments unchanged only while blocked', () => {
+    component['events'].set([{ ...event(9, 'asignada'), comment: 'Esperando acceso' }]);
+    expect(component['activeImpediment']()?.comment).toBe('Esperando acceso');
+    component['report'].set({ status: 'asignada', assigneeId: 2 } as ApiReport);
+    expect(component['activeImpediment']()).toBeNull();
+  });
+
+  it('accepts exactly 1000 serialized characters and rejects one more', () => {
+    component['report'].set({ status: 'asignada', assigneeId: 2 } as ApiReport);
+    component['requestImpediment']();
+    const prefix = 'Motivo: Otro\nDescripción: ';
+    component['impedimentForm'].setValue({ reason: 'Otro', description: 'a'.repeat(1001 - prefix.length) });
+    component['confirmImpediment']();
+    expect(api.changeStatus).not.toHaveBeenCalled();
+    component['impedimentForm'].controls.description.setValue('a'.repeat(1000 - prefix.length));
+    api.changeStatus.and.returnValue(new Subject<ApiReport>());
+    component['confirmImpediment']();
+    expect(api.changeStatus.calls.mostRecent().args[1].comment?.length).toBe(1000);
+  });
+
 });

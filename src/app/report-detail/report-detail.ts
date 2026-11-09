@@ -1,3 +1,4 @@
+import { toSignal } from '@angular/core/rxjs-interop';
 import { Dialog } from '../ui/dialog/dialog';
 import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -116,6 +117,68 @@ export class ReportDetail implements OnInit, OnDestroy {
   protected readonly notFound = signal(false);
 
   protected readonly busy = signal(false);
+  protected readonly impedimentOpen = signal(false);
+  protected readonly impedimentError = signal('');
+  protected readonly impedimentReasons = [
+    'Falta de refacción', 'Falta de acceso', 'Falta de autorización',
+    'Dependencia de otra área', 'Otro',
+  ];
+  protected readonly impedimentForm = this.fb.nonNullable.group({
+    reason: ['', [Validators.required, Validators.pattern(/\S/)]],
+    description: ['', [Validators.required, Validators.pattern(/\S/)]],
+  });
+  private readonly impedimentValues = toSignal(this.impedimentForm.valueChanges, {
+    initialValue: this.impedimentForm.getRawValue(),
+  });
+  protected readonly impedimentComment = computed(() => {
+    const value = this.impedimentValues();
+    return `Motivo: ${value.reason ?? ''}\nDescripción: ${(value.description ?? '').trim()}`;
+  });
+  protected readonly latestBlock = computed(() => this.events().reduce<ApiStatusEvent | null>(
+    (latest, event) => event.toStatus === 'bloqueada' && (!latest || event.id > latest.id) ? event : latest,
+    null,
+  ));
+  protected readonly activeImpediment = computed(() =>
+    this.report()?.status === 'bloqueada' ? this.latestBlock() : null,
+  );
+
+  protected requestImpediment(): void {
+    if (!this.canBlock() || this.busy()) return;
+    this.impedimentForm.reset();
+    this.impedimentError.set('');
+    this.impedimentOpen.set(true);
+  }
+
+  protected cancelImpediment(): void {
+    if (!this.busy()) this.impedimentOpen.set(false);
+  }
+
+  protected confirmImpediment(): void {
+    if (!this.impedimentOpen() || this.busy()) return;
+    this.impedimentForm.markAllAsTouched();
+    if (!this.canBlock()) {
+      this.impedimentError.set('La incidencia ya no se puede bloquear. Actualiza el reporte.');
+      return;
+    }
+    if (this.impedimentForm.invalid || this.impedimentComment().length > 1000) return;
+    this.busy.set(true);
+    this.impedimentError.set('');
+    this.api.changeStatus(this.folio, { status: 'bloqueada', comment: this.impedimentComment() }).subscribe({
+      next: item => {
+        this.report.set(item);
+        this.busy.set(false);
+        this.impedimentOpen.set(false);
+        this.toast.show('Impedimento registrado');
+        this.loadHistory();
+        this.loadUnifiedHistory();
+      },
+      error: (err: HttpErrorResponse) => {
+        this.busy.set(false);
+        this.impedimentError.set(this.errorMessage(err));
+      },
+    });
+  }
+
   protected readonly closeDialogOpen = signal(false);
   protected readonly closeDialogError = signal('');
 
@@ -466,11 +529,7 @@ export class ReportDetail implements OnInit, OnDestroy {
   protected readonly resumeStatus =
     computed<ReportStatus | null>(() => {
 
-      const blocked =
-        this.events().reduce<ApiStatusEvent | null>((latest, event) =>
-          event.toStatus === 'bloqueada' && (!latest || event.id > latest.id) ? event : latest, null);
-
-      return blocked?.fromStatus ?? null;
+      return this.latestBlock()?.fromStatus ?? null;
 
     });
 

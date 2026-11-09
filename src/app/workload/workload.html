@@ -27,7 +27,7 @@
   </div>
   @if (page(); as result) {
     <div class="table-wrap"><table><thead><tr><th>Incidencia</th><th>Estado</th><th>Prioridad</th><th>Creación</th></tr></thead><tbody>
-    @for (report of result.items; track report.id) { <tr><td><a [routerLink]="['/inicio/reportes', report.folio]">{{ report.title }}</a><small>{{ report.folio }}</small></td><td>{{ statusLabel(report.status) }}</td><td>{{ priorityLabel(report.priority) }}</td><td>{{ report.createdAt | date:'dd/MM/yyyy' }}</td></tr> }
+    @for (report of result.items; track report.id) { <tr><td><a [routerLink]="['/inicio/reportes', report.folio]">{{ report.title }}</a><small>{{ report.folio }}</small></td><td><span class="workload-status" [attr.data-status]="report.status">{{ statusLabel(report.status) }}</span></td><td>{{ priorityLabel(report.priority) }}</td><td>{{ report.createdAt | date:'dd/MM/yyyy' }}</td></tr> }
     @empty { <tr><td colspan="4">No hay incidencias que coincidan con los filtros.</td></tr> }
     </tbody></table></div>
     <nav class="pagination" aria-label="Paginación de incidencias"><span>{{ result.total }} incidencias · Página {{ offset / limit + 1 }}</span><button type="button" (click)="paginate(-1)" [disabled]="loading() || offset === 0">Anterior</button><button type="button" (click)="paginate(1)" [disabled]="loading() || offset + limit >= result.total">Siguiente</button></nav>

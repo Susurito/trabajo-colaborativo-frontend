@@ -208,3 +208,19 @@
     justify-content: center;
   }
 }
+
+.dialog.impediment-dialog {
+  width: min(40rem, 100%);
+  box-sizing: border-box;
+  padding: 1.75rem;
+  overflow-y: auto;
+  background: #fff;
+  color: #263b4d;
+  border: 1px solid #d9dfe5;
+  border-radius: 1rem;
+  box-shadow: 0 24px 64px rgb(15 23 42 / 28%);
+}
+.impediment-dialog h2 { color: #16465c; font-size: 1.4rem; }
+@media (max-width: 480px) {
+  .dialog.impediment-dialog { padding: 1.2rem; }
+}

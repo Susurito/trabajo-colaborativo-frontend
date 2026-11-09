@@ -30,3 +30,5 @@
 }
 .error-banner button:hover { background: #b91c1c; }
 .error-banner button:disabled { opacity: .6; cursor: default; }
+
+.workload-status[data-status='bloqueada'] { display: inline-block; color: #912018; background: #fee4e2; border: 1px solid #f6bbb5; border-radius: 2rem; padding: .2rem .6rem; font-weight: 700; }
