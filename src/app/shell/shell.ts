@@ -95,6 +95,9 @@ export class Shell {
     ['coordinador', 'responsable'].includes(this.currentRole().slug),
   );
   protected readonly currentUser = this.authService.currentUser;
+  protected readonly canViewAnalytics = computed(() =>
+    ['administrador', 'coordinador', 'responsable'].includes(this.currentRole().slug),
+  );
   protected readonly searchQuery = this.homeSearch.query;
 
   /** Color hex del rol activo, para pasarlo como CSS var al template */

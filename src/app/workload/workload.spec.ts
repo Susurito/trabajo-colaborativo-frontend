@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { provideZonelessChangeDetection } from '@angular/core';
 import { of, Subject, throwError } from 'rxjs';
 import { Workload } from './workload';
 import { WorkloadApiService, LoadGroup } from '../data/workload-api.service';
@@ -20,6 +21,7 @@ describe('Workload assignments', () => {
       report('uncategorized', 'validada', null, null), report('draft', 'reportada', null),
     ]));
     TestBed.configureTestingModule({ providers: [
+      provideZonelessChangeDetection(),
       { provide: ReportsApiService, useValue: reports },
       { provide: UsersApiService, useValue: { list: () => of([{ id: 5, is_active: true, roles: ['tecnico'] }]) } },
       { provide: ToastService, useValue: { show: jasmine.createSpy() } },

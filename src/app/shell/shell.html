@@ -131,6 +131,12 @@
           }
         </a>
       }
+      @if (canViewAnalytics()) {
+        <a routerLink="/inicio/reportes-atencion" routerLinkActive="active" class="nav-item" title="Reportes de atención" aria-label="Reportes de atención">
+          <svg lucideFileText aria-hidden="true"></svg>
+          @if (showSidebarLabels()) { <span>Reportes de atención</span> }
+        </a>
+      }
       @if (canViewWorkload()) {
         <a routerLink="/inicio/cargas" routerLinkActive="active" class="nav-item" title="Cargas de trabajo" aria-label="Cargas de trabajo">
           <svg lucideClipboardCheck aria-hidden="true"></svg>
@@ -194,6 +200,9 @@
         }
         @if (currentUrl().startsWith('/inicio/cargas')) {
           <span class="sep">›</span><span>Cargas de trabajo</span>
+        }
+        @if (currentUrl().startsWith('/inicio/reportes-atencion')) {
+          <span class="sep">›</span><span>Reportes de atención</span>
         }
         @if (crumbs.reportTitle(); as title) {
           <span class="sep">›</span>

@@ -1,5 +1,31 @@
 # TrabajoColaborativoFrontend
 
+## Reportes de atención (HU-27 a HU-30)
+
+Entra a **Reportes de atención** desde el menú con el rol activo de administrador,
+coordinador o responsable de área (`/inicio/reportes-atencion`). La consulta permite
+filtrar por fechas de creación UTC, campus, área, estado y prioridad. **Generar
+reporte** aplica los filtros; **Exportar CSV** descarga todos los resultados de la
+última consulta generada, incluyendo las páginas que no están visibles.
+
+La vista muestra totales, distribución por área, promedios con su muestra y un
+detalle paginado. En cada incidencia, **Atención recibida** muestra sus tiempos;
+el autor puede enviar una evaluación de 1 a 5 con comentario opcional cuando la
+incidencia esté cerrada. La evaluación solo se envía una vez.
+
+`data/analytics-api.service.ts` concentra los contratos y llamadas HTTP. Las vistas
+`analytics/` y `attention/` se encargan de la interacción; los permisos y las reglas
+de cálculo se validan en el backend. La pantalla de reportes se carga bajo demanda.
+Hay estados de carga, vacío y error, cancelación de consultas anteriores y bloqueo
+de envíos duplicados. Los tiempos sin historial se presentan como «Sin datos».
+
+Validación:
+
+```bash
+npm run build
+npm test -- --watch=false --browsers=ChromeHeadless
+```
+
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.3.14.
 
 ## Development server

@@ -1,0 +1,29 @@
+@if (allowed()) {
+<section class="attention" aria-labelledby="attention-title">
+  <h2 id="attention-title">Atención recibida</h2>
+  @if (loading()) { <p role="status">Consultando atención…</p> }
+  @if (error()) { <p role="alert">{{ error() }} Recarga la página para volver a intentarlo.</p> }
+  @if (!loading() && !error()) {
+    @if (times(); as data) {
+      <dl class="times">
+        <div><dt>Primera atención</dt><dd>{{ data.response_hours === null ? 'Sin datos' : (data.response_hours | number:'1.1-2') + ' h' }}</dd></div>
+        <div><dt>Resolución</dt><dd>{{ data.resolution_hours === null ? 'Sin datos' : (data.resolution_hours | number:'1.1-2') + ' h' }}</dd></div>
+        <div><dt>Cierre</dt><dd>{{ data.closure_hours === null ? 'Sin datos' : (data.closure_hours | number:'1.1-2') + ' h' }}</dd></div>
+        @if (data.open_hours !== null) { <div><dt>Tiempo abierta</dt><dd>{{ data.open_hours | number:'1.1-2' }} h</dd></div> }
+      </dl>
+      <p class="hint">Horas naturales desde la creación, incluido el tiempo bloqueado. Primera atención corresponde al primer cambio a En progreso. Sin eventos registrados se muestra «Sin datos».</p>
+    }
+    @if (evaluation(); as item) {
+      <div class="evaluation" role="status"><h3>Evaluación registrada: {{ item.rating }} / 5</h3>@if (item.comment) { <p>{{ item.comment }}</p> }<small>{{ item.created_at | date:'dd/MM/yyyy HH:mm' }}</small></div>
+    } @else if (canEvaluate()) {
+      <form (ngSubmit)="submit()" #evaluationForm="ngForm">
+        <h3>¿Cómo fue la atención?</h3><p>Tu evaluación se guarda una sola vez para esta incidencia.</p>
+        <label>Calificación<select name="rating" [(ngModel)]="rating" required [disabled]="saving()"><option value="" disabled>Selecciona una calificación</option><option value="1">1 — Muy mala</option><option value="2">2 — Mala</option><option value="3">3 — Regular</option><option value="4">4 — Buena</option><option value="5">5 — Excelente</option></select></label>
+        <label>Comentario (opcional)<textarea name="comment" [(ngModel)]="comment" maxlength="1000" rows="3" [disabled]="saving()"></textarea></label><small>{{ comment.length }} / 1000 caracteres</small>
+        @if (saveError()) { <p role="alert">{{ saveError() }}</p> }
+        <button type="submit" [disabled]="saving() || evaluationForm.invalid">{{ saving() ? 'Guardando…' : 'Enviar evaluación' }}</button>
+      </form>
+    } @else { <p class="hint">El autor puede evaluar la atención cuando la incidencia esté cerrada.</p> }
+  }
+</section>
+}

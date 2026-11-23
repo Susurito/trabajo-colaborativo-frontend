@@ -1,0 +1,54 @@
+<header class="heading">
+  <div><h1>Reportes de atención</h1><p>Consulta las incidencias, sus tiempos de atención y la satisfacción de quienes las reportan.</p></div>
+  <button type="button" class="primary" (click)="export()" [disabled]="loading() || exporting() || !summary()">{{ exporting() ? 'Exportando…' : 'Exportar CSV' }}</button>
+</header>
+<form class="filters" (ngSubmit)="apply()">
+  <label>Desde<input type="date" name="startDate" [(ngModel)]="startDate" [max]="endDate || '9999-12-30'"></label>
+  <label>Hasta<input type="date" name="endDate" [(ngModel)]="endDate" [min]="startDate" max="9999-12-30"></label>
+  <label>Campus<select name="campus" [(ngModel)]="campusId"><option value="">Todos los campus</option>@for (campus of campuses(); track campus.id) { <option [value]="campus.id">{{ campus.name }}</option> }</select></label>
+  <label>Área<select name="specialty" [(ngModel)]="specialtyId"><option value="">Todas las áreas</option>@for (area of specialties(); track area.id) { <option [value]="area.id">{{ area.name }}</option> }</select></label>
+  <label>Estado<select name="status" [(ngModel)]="status"><option value="">Todos los estados</option>@for (state of statuses; track state) { <option [value]="state">{{ statusLabel(state) }}</option> }</select></label>
+  <label>Prioridad<select name="priority" [(ngModel)]="priority"><option value="">Todas las prioridades</option><option value="baja">Baja</option><option value="media">Media</option><option value="alta">Alta</option></select></label>
+  <div class="actions"><button type="submit" [disabled]="loading()">Generar reporte</button><button type="button" (click)="clear()" [disabled]="loading()">Limpiar</button></div>
+</form>
+<p class="hint">El período filtra por fecha de creación, con ambos días incluidos en UTC. La exportación incluye todos los resultados de la última consulta generada.</p>
+@if (catalogError()) { <p role="status">{{ catalogError() }}</p> }
+@if (exportError()) { <p class="error" role="alert">{{ exportError() }}</p> }
+@if (error()) { <div class="error" role="alert">{{ error() }} <button type="button" (click)="retry()">Reintentar consulta</button></div> }
+@if (loading()) { <p role="status">Generando reporte…</p> }
+<div [attr.aria-busy]="loading()" [class.updating]="loading()">
+@if (summary(); as data) {
+  <section class="totals" aria-label="Resumen de incidencias">
+    <div><span>Incidencias</span><strong>{{ data.total }}</strong></div>
+    <div><span>Pendientes</span><strong>{{ data.pending }}</strong></div>
+    <div><span>Resueltas</span><strong>{{ data.resolved }}</strong></div>
+    <div><span>Cerradas</span><strong>{{ data.closed }}</strong></div>
+  </section>
+  <section class="measurements" aria-label="Indicadores de atención">
+    <div><h2>Primera atención</h2><strong>{{ data.response_hours_average === null ? 'Sin datos' : (data.response_hours_average | number:'1.1-2') + ' h' }}</strong><small>{{ data.response_sample }} incidencias con inicio registrado</small></div>
+    <div><h2>Resolución</h2><strong>{{ data.resolution_hours_average === null ? 'Sin datos' : (data.resolution_hours_average | number:'1.1-2') + ' h' }}</strong><small>{{ data.resolution_sample }} incidencias resueltas o cerradas</small></div>
+    <div><h2>Cierre</h2><strong>{{ data.closure_hours_average === null ? 'Sin datos' : (data.closure_hours_average | number:'1.1-2') + ' h' }}</strong><small>{{ data.closure_sample }} cierres con fecha registrada</small></div>
+    <div><h2>Satisfacción</h2><strong>{{ data.rating_average === null ? 'Sin evaluaciones' : (data.rating_average | number:'1.1-2') + ' / 5' }}</strong><small>{{ data.evaluation_count }} evaluaciones recibidas</small></div>
+  </section>
+  <details class="method"><summary>Cómo se calculan los tiempos</summary><p>Horas naturales desde la creación. Primera atención: primer cambio a En progreso. Resolución y cierre: último cambio al estado correspondiente. Se incluye el tiempo bloqueado. Las incidencias reabiertas no cuentan como resueltas hasta resolverse nuevamente. Los registros sin eventos históricos se excluyen del promedio y se muestran como «Sin datos».</p></details>
+  <h2>Distribución por área</h2>
+  <div class="table-wrap"><table><thead><tr><th>Área</th><th>Total</th><th>Pendientes</th><th>Resueltas</th><th>Cerradas</th></tr></thead><tbody>
+    @for (area of data.by_area; track area.specialty_id) { <tr><th scope="row">{{ area.name }}</th><td>{{ area.total }}</td><td>{{ area.pending }}</td><td>{{ area.resolved }}</td><td>{{ area.closed }}</td></tr> }
+    @empty { <tr><td colspan="5">No hay incidencias para los filtros seleccionados.</td></tr> }
+  </tbody></table></div>
+  <h2>Detalle de incidencias</h2>
+  @if (page(); as result) {
+    <div class="table-wrap"><table><thead><tr><th>Incidencia</th><th>Área / Técnico</th><th>Estado</th><th>Primera atención</th><th>Resolución</th><th>Cierre</th><th>Abierta</th><th>Evaluación</th></tr></thead><tbody>
+      @for (row of result.items; track row.id) {
+        <tr><td><a [routerLink]="['/inicio/reportes', row.folio]">{{ row.title }}</a><small>{{ row.folio }} · {{ row.created_at | date:'dd/MM/yyyy':'UTC' }}</small></td><td>{{ row.specialty }}<small>{{ row.assignee }}</small></td><td>{{ statusLabel(row.status) }}</td>
+        <td>{{ row.response_hours === null ? 'Sin datos' : (row.response_hours | number:'1.1-2') + ' h' }}</td>
+        <td>{{ row.resolution_hours === null ? 'Sin datos' : (row.resolution_hours | number:'1.1-2') + ' h' }}</td>
+        <td>{{ row.closure_hours === null ? 'Sin datos' : (row.closure_hours | number:'1.1-2') + ' h' }}</td>
+        <td>{{ row.open_hours === null ? '—' : (row.open_hours | number:'1.1-2') + ' h' }}</td><td>{{ row.rating === null ? 'Sin evaluar' : row.rating + ' / 5' }}</td></tr>
+      } @empty { <tr><td colspan="8">No hay incidencias para los filtros seleccionados.</td></tr> }
+    </tbody></table></div>
+    <nav class="pagination" aria-label="Paginación del reporte"><span>{{ result.total }} resultados · Página {{ offset / limit + 1 }}</span><button type="button" (click)="paginate(-1)" [disabled]="loading() || offset === 0">Anterior</button><button type="button" (click)="paginate(1)" [disabled]="loading() || offset + limit >= result.total">Siguiente</button></nav>
+  }
+  <p class="hint">Generado: {{ data.generated_at | date:'dd/MM/yyyy HH:mm':'UTC' }} UTC. Pendientes excluye resueltas y cerradas.</p>
+}
+</div>
